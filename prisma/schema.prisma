@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  phone        String    @unique
+  firstName    String?
+  lastName     String?
+  passwordHash String?
+  role         String    @default("user")
+  status       String    @default("active")
+  otp          String?
+  otpExpires   DateTime?
+  createdAt    DateTime  @default(now())
+
+  // روابط
+  supportMessages SupportMessage[]
+  tickets         Ticket[]
+  orders          Order[]
+  wallet          Wallet?
+}
+
+model Ad {
+  id        Int      @id @default(autoincrement())
+  title     String
+  desc      String
+  category  String
+  price     Int
+  image     String?
+  createdAt DateTime @default(now())
+}
+
+model SupportMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  title       String
+  message     String
+  status      String   @default("open")
+  attachments String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  type           String
+  amount         Float
+  price          Float
+  recipientName  String
+  address        String
+  postalCode     String
+  city           String
+  phone          String
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
