@@ -1,34 +1,51 @@
-// app/api/orders/new/route.ts
-import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { verifyJwt } from "@/lib/jwt";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server"
+import { jwtVerify } from "jose"
+import prisma from "@/lib/prisma"
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "supersecret")
 
 export async function POST(req: Request) {
   try {
-    const token = (await cookies()).get("token")?.value;
-    if (!token) return NextResponse.json({ error: "نیاز به ورود" }, { status: 401 });
+    const { productId, amount } = await req.json()
 
-    const decoded: any = verifyJwt(token);
-    if (!decoded) return NextResponse.json({ error: "توکن نامعتبر" }, { status: 401 });
+    // بررسی ورودی‌ها
+    if (!productId || !amount) {
+      return NextResponse.json({ error: "اطلاعات ناقص است" }, { status: 400 })
+    }
 
-    const { productId, amount } = await req.json();
+    // دریافت محصول از دیتابیس
+    const product = await prisma.product.findUnique({
+      where: { id: Number(productId) },
+    })
 
-    const product = await prisma.ad.findUnique({ where: { id: productId } });
-    if (!product) return NextResponse.json({ error: "محصول پیدا نشد" }, { status: 404 });
+    if (!product) {
+      return NextResponse.json({ error: "محصول یافت نشد" }, { status: 404 })
+    }
 
-    const newOrder = await prisma.order.create({
+    // دریافت توکن از هدر
+    const token = req.headers.get("authorization")?.split(" ")[1]
+    if (!token) {
+      return NextResponse.json({ error: "توکن یافت نشد" }, { status: 401 })
+    }
+
+    // بررسی توکن
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    if (!payload?.userId) {
+      return NextResponse.json({ error: "شناسه کاربر معتبر نیست" }, { status: 401 })
+    }
+
+    // ایجاد سفارش جدید (بدون productId)
+    const order = await prisma.order.create({
       data: {
-        userId: decoded.userId,
-        productId,
+        userId: Number(payload.userId),
         amount,
         price: product.price * amount,
       },
-    });
+    })
 
-    return NextResponse.json(newOrder);
+    return NextResponse.json({ order })
   } catch (err) {
-    console.error("Order Error:", err);
-    return NextResponse.json({ error: "خطا در ثبت سفارش" }, { status: 500 });
+    console.error("خطا در /api/orders/new:", err)
+    return NextResponse.json({ error: "خطای سرور" }, { status: 500 })
   }
 }
