@@ -21,8 +21,8 @@ export async function GET() {
       return NextResponse.json({ error: "شناسه کاربر در توکن نیست" }, { status: 401 })
     }
 
-    // تبدیل به number اگر string باشه
-    const userId = typeof payload.userId === "string" ? parseInt(payload.userId) : payload.userId
+    // 🔧 تبدیل به عدد مطمئن
+    const userId: number = Number(payload.userId)
 
     // ✅ گرفتن کاربر از دیتابیس
     const user = await prisma.user.findUnique({
