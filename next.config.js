@@ -1,14 +1,6 @@
-const express = require('express');
-const app = express();
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+};
 
-// مسیر اصلی سایت
-app.get('/', (req, res) => {
-  res.send('سلام! سایت Node.js شما کار می‌کند 😄');
-});
-
-// پورت که هاست اختصاص می‌دهد
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+module.exports = nextConfig;
